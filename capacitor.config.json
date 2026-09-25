@@ -1,0 +1,9 @@
+{
+  "appId": "com.rishabh.wishlist",
+  "appName": "Wishlist",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#EEF1EF",
+    "adjustMarginsForEdgeToEdge": "auto"
+  }
+}

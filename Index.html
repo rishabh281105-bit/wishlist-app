@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EEF1EF;
+    --paper: #FFFFFF;
+    --ink: #15201B;
+    --muted: #66716B;
+    --line: #D7DDD9;
+    --tag: #FFD84D;
+    --action: #1F5C8F;
+    --drop: #17804F;
+    --warn: #B4531A;
+    --display: 'Bricolage Grotesque', 'Segoe UI', Roboto, sans-serif;
+    --body: 'Figtree', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; -webkit-text-size-adjust: 100%; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 14px 90px; }
+
+  header { padding: 18px 0 6px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: 30px; letter-spacing: -0.02em; margin: 0; }
+  .total { text-align: right; }
+  .total b { font-family: var(--display); font-size: 20px; font-weight: 700; display: block; font-variant-numeric: tabular-nums; }
+  .total span { color: var(--muted); font-size: 13px; }
+
+  .adder { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0 12px; }
+  .adder form { display: flex; gap: 8px; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 14px; padding: 6px; }
+  .adder input { flex: 1; min-width: 0; border: 0; outline: none; padding: 10px 8px; background: transparent; font-size: 16px; }
+  .btn { border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 600; }
+  .btn.primary { background: var(--ink); color: #fff; }
+  .btn.ghost { background: transparent; color: var(--action); padding: 10px 8px; }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .progress { font-size: 13px; color: var(--muted); padding: 6px 4px 0; min-height: 20px; }
+
+  .filters { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .chip { white-space: nowrap; border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 7px 13px; font-size: 14px; }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .chip .n { opacity: .6; margin-left: 4px; font-variant-numeric: tabular-nums; }
+
+  .bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin: 2px 0 12px; }
+  .seg { display: inline-flex; background: #E1E6E3; border-radius: 10px; padding: 3px; }
+  .seg button { white-space: nowrap; border: 0; background: transparent; padding: 6px 10px; border-radius: 8px; font-size: 13px; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--paper); color: var(--ink); font-weight: 600; }
+  select.sort { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 7px 8px; font-size: 13px; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (min-width: 640px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 900px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+  .card { background: var(--paper); border-radius: 16px; overflow: hidden; border: 0; box-shadow: 0 1px 0 var(--line); text-align: left; padding: 0; display: flex; flex-direction: column; }
+  .card .pic { position: relative; aspect-ratio: 1 / 1; background: #E4E8E6; }
+  .card .pic img { width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
+  .card .body { padding: 9px 10px 11px; display: flex; flex-direction: column; gap: 4px; }
+  .card .name { font-weight: 600; font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .meta { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 6px; }
+  .card .meta .cat { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card.dim .pic img { filter: grayscale(1); opacity: .7; }
+
+  /* Grid view: price tags hanging from the photo */
+  .hang { position: absolute; top: 12px; right: 10px; transform: rotate(-5deg); transform-origin: top center; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+  .hang .str { width: 1px; height: 14px; background: var(--ink); }
+  .hang .tg { background: var(--tag); color: var(--ink); font-family: var(--display); font-weight: 700; font-size: 15px; padding: 5px 10px; border-radius: 6px;
+              box-shadow: 0 2px 0 rgba(21,32,27,.18); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .hang .tg.none { background: #fff; color: var(--warn); font-family: var(--body); font-size: 12px; font-weight: 600; }
+  .hang .wasc { margin-top: 4px; font-size: 11px; font-weight: 600; color: var(--drop); background: #fff; padding: 2px 6px; border-radius: 5px; white-space: nowrap; }
+
+  /* List view */
+  .list { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px 8px; }
+  .sec + .sec { margin-top: 10px; }
+  .sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 12px 0 6px; }
+  .sec-title { border: 0; background: none; padding: 0; font-family: var(--display); font-weight: 700; font-size: 16px; text-align: left; }
+  button.sec-title { color: var(--ink); }
+  .sec-sub { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .lrow { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 0; border: 0; border-top: 1px dashed var(--line); background: none; text-align: left; }
+  .lrow .th { width: 52px; height: 52px; border-radius: 10px; background: #E4E8E6; flex: none; overflow: hidden; }
+  .lrow .th img { width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
+  .lrow .tx { flex: 1; min-width: 0; }
+  .lrow .nm { font-size: 14px; font-weight: 500; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .lrow .st { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .lrow .pr { text-align: right; flex: none; }
+  .lrow .pr b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .lrow .pr .w { display: block; font-size: 12px; font-weight: 600; color: var(--drop); }
+  .lrow .pr .np { font-size: 12px; font-weight: 600; color: var(--warn); }
+  .lrow.dim .th img { filter: grayscale(1); opacity: .7; }
+
+  /* List view: total and paste box at the bottom */
+  .bottombar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--ink); color: #fff; border-radius: 22px 22px 0 0;
+               padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px)); display: none; }
+  .bottombar .in { max-width: 640px; margin: 0 auto; }
+  .bottombar .sum { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+  .bottombar .sum span { font-size: 13px; color: #C9D1CD; }
+  .bottombar .sum b { font-family: var(--display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bottombar form { display: flex; gap: 6px; background: #2A3530; border-radius: 14px; padding: 5px 5px 5px 14px; align-items: center; }
+  .bottombar input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: #fff; font-size: 16px; padding: 8px 0; }
+  .bottombar input::placeholder { color: #A9B3AE; }
+  .bottombar .btn.ghost { color: #fff; }
+  .bottombar .btn.tagbtn { background: var(--tag); color: var(--ink); }
+  .bottombar .progress { color: #C9D1CD; padding: 6px 2px 0; min-height: 0; }
+  body.listmode .adder { display: none; }
+  body.listmode #total { display: none; }
+  body.listmode .bottombar { display: block; }
+  body.listmode .wrap { padding-bottom: 190px; }
+  body.listmode .toast { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Header and settings */
+  .hdr-right { display: flex; align-items: center; gap: 12px; }
+  .gear { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); display: grid; place-items: center; padding: 0; flex: none; }
+  .opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .opt { border: 1.5px solid var(--line); background: #fff; border-radius: 14px; padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 6px; }
+  .opt[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .opt strong { font-size: 15px; }
+  .opt span { font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .pv { height: 74px; border-radius: 8px; background: var(--bg); padding: 8px; display: grid; gap: 6px; margin-bottom: 4px; }
+  .pv.g { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pv.g i { background: #fff; border-radius: 5px; position: relative; }
+  .pv.g i::after { content: ''; position: absolute; top: 5px; right: 5px; width: 14px; height: 7px; border-radius: 2px; background: var(--tag); }
+  .pv.l { grid-template-rows: repeat(3, minmax(0, 1fr)); }
+  .pv.l i { background: #fff; border-radius: 4px; position: relative; }
+  .pv.l i::before { content: ''; position: absolute; left: 3px; top: 3px; bottom: 3px; width: 11px; border-radius: 2px; background: #D5DCD8; }
+  .srow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); }
+  .srow p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+  .srow.link { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; background: none; text-align: left; font-weight: 600; }
+  .sgroup { margin-top: 18px; }
+  .sgroup > .label { margin-bottom: 8px; }
+
+  .empty { text-align: center; padding: 48px 16px; color: var(--muted); }
+  .empty strong { display: block; color: var(--ink); font-family: var(--display); font-size: 20px; margin-bottom: 6px; }
+
+  .switch { position: relative; width: 46px; height: 28px; border-radius: 999px; border: 0; background: #C9D0CC; flex: none; transition: background .15s; }
+  .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .15s; }
+  .switch[aria-checked="true"] { background: var(--drop); }
+  .switch[aria-checked="true"]::after { transform: translateX(18px); }
+
+  /* Bottom sheet */
+  .scrim { position: fixed; inset: 0; background: rgba(21,32,27,.45); z-index: 20; display: none; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; background: var(--paper); border-radius: 18px 18px 0 0; max-height: 88vh; overflow-y: auto;
+           padding: 8px 18px calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateY(100%); transition: transform .22s ease-out; max-width: 640px; margin: 0 auto; }
+  .sheet.open { transform: translateY(0); }
+  .scrim.open { display: block; }
+  .grab { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 4px auto 14px; }
+  .sheet .top { display: flex; gap: 14px; align-items: flex-start; }
+  .sheet .top img, .sheet .top .ph { width: 92px; height: 92px; border-radius: 10px; object-fit: cover; background: #E4E8E6; flex: none; }
+  .sheet .site { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .field { display: block; margin-top: 14px; }
+  .field > span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+  .field input, .field textarea { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 16px; background: #fff; }
+  .field textarea { min-height: 64px; resize: vertical; }
+  .row2 { display: flex; gap: 10px; }
+  .row2 .field { flex: 1; }
+  .catlist { display: flex; flex-wrap: wrap; gap: 6px; }
+  .newcat { display: flex; gap: 6px; margin-top: 8px; }
+  .newcat input { flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 16px; min-width: 0; }
+  .openlink { display: block; text-align: center; margin-top: 16px; background: var(--action); color: #fff; text-decoration: none; border-radius: 12px; padding: 13px; font-weight: 600; }
+  .sheet .foot { display: flex; justify-content: space-between; margin-top: 12px; }
+  .btn.danger { background: transparent; color: #B3261E; padding: 10px 4px; }
+  .small { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: #fff;
+           border-radius: 12px; padding: 11px 16px; font-size: 14px; max-width: calc(100% - 28px); z-index: 30; transition: all .2s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.err { background: #8C2A1E; }
+
+  .chip.manage { border-style: dashed; color: var(--action); }
+  .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: 14px; margin: 0 0 6px; }
+  .crumbs button { border: 0; background: none; color: var(--action); padding: 4px 2px; font-weight: 500; }
+  .crumbs .sep { color: var(--muted); padding: 0 3px; }
+  .crumbs b { padding: 4px 2px; font-weight: 600; }
+  .shead { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .shead strong { font-family: var(--display); font-size: 19px; flex: 1; font-weight: 700; }
+  .shead .btn { padding: 8px 4px; }
+  .search { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 16px; margin-bottom: 12px; }
+  .flist { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+  .frow { border-top: 1px solid var(--line); }
+  .frow:first-child { border-top: 0; }
+  .frow .line { display: flex; align-items: center; }
+  .fname { flex: 1; min-width: 0; text-align: left; border: 0; background: none; padding: 13px 14px; display: flex; justify-content: space-between; gap: 10px; }
+  .fname .cnt { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .fname .pp { color: var(--muted); }
+  .fname .arrow { color: var(--muted); }
+  .frow .edit { border: 0; background: none; color: var(--action); padding: 13px 14px; font-weight: 600; }
+  .fpanel { padding: 10px 14px 14px; background: #F5F7F6; border-top: 1px solid var(--line); }
+  .fpanel .acts { display: flex; gap: 8px; margin-top: 10px; }
+  .fpanel .acts .btn { flex: 1; border: 1px solid var(--line); background: #fff; }
+  .none { padding: 14px; color: var(--muted); font-size: 14px; }
+  .catbtn { width: 100%; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 11px 10px; display: flex; justify-content: space-between; gap: 8px; font-size: 16px; }
+  .catbtn .empty-cat { color: var(--muted); }
+  .fullbtn { width: 100%; padding: 13px; }
+  .recents { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .label { font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+
+  /* Phone app */
+  .setup { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+  .setup[hidden] { display: none; }
+  .setup-card { width: 100%; max-width: 420px; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+  .setup-card h2 { font-family: var(--display); font-size: 24px; margin: 0 0 6px; }
+  .setup-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
+  .setup-err { color: #B3261E; font-size: 14px; min-height: 20px; margin: 12px 0 6px; }
+  .setup-card .fullbtn + .fullbtn { margin-top: 8px; }
+  .updatebar { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--tag); border-radius: 12px; padding: 8px 8px 8px 14px; margin-top: 12px; font-weight: 600; font-size: 14px; }
+  .updatebar[hidden] { display: none; }
+  .updatebar a.btn { text-decoration: none; padding: 9px 14px; }
+  .share-wait { text-align: center; padding: 26px 0 34px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--ink); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .nm-lg { font-weight: 600; font-size: 16px; line-height: 1.3; }
+  .pr-lg { font-family: var(--display); font-weight: 700; font-size: 20px; margin-top: 6px; }
+  .pr-lg.none { font-family: var(--body); font-size: 14px; font-weight: 600; color: var(--warn); }
+  .fullbtn + .fullbtn { margin-top: 8px; }
+  .srow small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Wishlist</h1>
+    <div class="hdr-right">
+      <div class="total" id="total"></div>
+      <button class="gear" id="gearBtn" aria-label="Settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+  </header>
+
+  <div class="updatebar" id="updateBar" hidden></div>
+
+  <div class="adder">
+    <form id="addForm" autocomplete="off">
+      <input id="linkInput" type="text" inputmode="url" placeholder="Paste a product link" aria-label="Product link">
+      <button type="button" class="btn ghost" data-paste="linkInput">Paste</button>
+      <button type="submit" class="btn primary">Add</button>
+    </form>
+    <div class="progress" id="progress" aria-live="polite"></div>
+  </div>
+
+  <div id="crumbs"></div>
+  <div class="filters" id="filters" role="toolbar" aria-label="Categories"></div>
+  <div class="bar">
+    <div class="seg" id="statusSeg" role="group" aria-label="Show">
+      <button data-s="Wishlist" aria-pressed="true">Wishlist</button>
+      <button data-s="Bought" aria-pressed="false">Bought</button>
+      <button data-s="Not interested" aria-pressed="false">Not interested</button>
+    </div>
+    <select class="sort" id="sort" aria-label="Sort">
+      <option value="new">Newest</option>
+      <option value="old">Oldest</option>
+      <option value="low">Price: low to high</option>
+      <option value="high">Price: high to low</option>
+      <option value="drop">Price drops first</option>
+    </select>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div id="listBox"></div>
+  <div id="emptyBox"></div>
+</div>
+
+<div class="bottombar" id="bottombar">
+  <div class="in">
+    <div class="sum" id="bsum"></div>
+    <form id="addForm2" autocomplete="off">
+      <input id="linkInput2" type="text" inputmode="url" placeholder="Paste a product link" aria-label="Product link">
+      <button type="button" class="btn ghost" data-paste="linkInput2">Paste</button>
+      <button type="submit" class="btn tagbtn">Add</button>
+    </form>
+    <div class="progress" id="progress2" aria-live="polite"></div>
+  </div>
+</div>
+
+<div class="setup" id="setup" hidden>
+  <div class="setup-card">
+    <h2>Connect your wishlist</h2>
+    <p>Paste the app link and secret key from your Google setup (app setup guide, part 1).</p>
+    <label class="field"><span>App link</span><input id="setupUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <label class="field"><span>Secret key</span><input id="setupKey" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+    <div class="setup-err" id="setupErr" aria-live="polite"></div>
+    <button class="btn primary fullbtn" id="setupBtn">Connect</button>
+    <button class="btn ghost fullbtn" id="setupCancel" hidden>Cancel</button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Product details"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+  const INITIAL = <?!= initialJson ?>;
+  const SEP = ' > ';
+  const state = {
+    items: [], categories: [], path: '', uncat: false, status: 'Wishlist', sort: 'new', priceCheck: false, loaded: false,
+    openId: null, view: 'detail', layout: loadLayout(), pickPath: '', search: '', managePath: '', manageSel: null, moveSrc: null, movePath: ''
+  };
+  const $ = id => document.getElementById(id);
+
+  /* ---------- phone app (only used inside the Android app) ---------- */
+  const IS_APP = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+  const APP_VERSION = '__APP_VERSION__';
+  const APP_REPO = '__APP_REPO__';
+  const native = (plugin, method, opts) => window.Capacitor.nativePromise(plugin, method, opts || {});
+  function getConn() { try { return JSON.parse(localStorage.getItem('wl_conn') || 'null'); } catch (e) { return null; } }
+  function setConn(c) { try { localStorage.setItem('wl_conn', JSON.stringify(c)); } catch (e) {} }
+  function readCache() { try { return JSON.parse(localStorage.getItem('wl_cache') || 'null'); } catch (e) { return null; } }
+  function writeCache() {
+    if (!IS_APP || !state.loaded) return;
+    try { localStorage.setItem('wl_cache', JSON.stringify({ items: state.items, categories: state.categories, priceCheck: state.priceCheck })); } catch (e) {}
+  }
+  async function apiCall(conn, fn, args) {
+    if (!conn) throw new Error('The app isn’t connected yet.');
+    const body = JSON.stringify({ key: conn.key, fn: fn, args: args });
+    let text;
+    try {
+      const r = await fetch(conn.url, { method: 'POST', body: body });
+      text = await r.text();
+    } catch (e) {
+      try {  // fall back to Android's own connection
+        const r = await native('CapacitorHttp', 'request', { url: conn.url, method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, data: body, responseType: 'text' });
+        text = typeof r.data === 'string' ? r.data : JSON.stringify(r.data);
+      } catch (e2) { throw new Error('No internet connection. Try again in a moment.'); }
+    }
+    let d;
+    try { d = JSON.parse(text); } catch (e) { throw new Error('Couldn’t reach your wishlist. Check the app link in Settings → Connection.'); }
+    if (!d.ok) throw new Error(d.error || 'Something went wrong.');
+    return d.result;
+  }
+  function loadLayout() { try { return localStorage.getItem('wl_layout') === 'list' ? 'list' : 'grid'; } catch (e) { return 'grid'; } }
+  function setLayout(l) {
+    state.layout = l;
+    try { localStorage.setItem('wl_layout', l); } catch (e) {}
+    render();
+  }
+
+  /* ---------- server calls ---------- */
+  function call(fn, ...args) {
+    if (IS_APP) return apiCall(getConn(), fn, args);
+    return new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(e => reject(e && e.message ? e : new Error(String(e))))[fn](...args);
+    });
+  }
+  // Saves run one after another in the background, so the screen never waits for Google
+  let queue = Promise.resolve();
+  function enqueue(fn, ...args) {
+    queue = queue.then(() => call(fn, ...args).catch(err => { toast('Couldn’t save: ' + err.message, true); load(); }));
+    return queue;
+  }
+
+  /* ---------- helpers ---------- */
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function money(n, cur) {
+    if (n == null) return '';
+    cur = cur || 'INR';
+    try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: cur, maximumFractionDigits: n % 1 ? 2 : 0 }).format(n); }
+    catch (e) { return cur + ' ' + n.toLocaleString('en-IN'); }
+  }
+  function toast(msg, isErr) {
+    const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.className = 'toast', 3200);
+  }
+  function isDrop(it) { return it.prevPrice != null && it.price != null && it.price < it.prevPrice; }
+  function cur() { return state.items.find(i => i.id === state.openId); }
+
+  /* ---------- folders ---------- */
+  const norm = p => String(p || '').split('>').map(s => s.trim()).filter(Boolean).join(SEP);
+  const parentOf = p => { const i = p.lastIndexOf(SEP); return i < 0 ? '' : p.slice(0, i); };
+  const nameOf = p => { const i = p.lastIndexOf(SEP); return i < 0 ? p : p.slice(i + SEP.length); };
+  const within = (c, p) => p === '' ? true : (c === p || c.indexOf(p + SEP) === 0);
+  const pretty = p => p.split(SEP).map(esc).join(' › ');
+  function allCats() {
+    const set = new Set();
+    const add = p => { p = norm(p); while (p) { set.add(p); p = parentOf(p); } };
+    state.categories.forEach(add); state.items.forEach(i => add(i.category));
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }
+  function childrenOf(p) { return allCats().filter(c => parentOf(c) === p).sort((a, b) => nameOf(a).localeCompare(nameOf(b))); }
+  function countIn(p, list) { return list.filter(i => i.category && within(i.category, p)).length; }
+  function crumbsHtml(p, act, rootLabel) {
+    const segs = p ? p.split(SEP) : [];
+    let h = segs.length ? `<button data-act="${act}" data-path="">${rootLabel}</button>` : `<b>${rootLabel}</b>`;
+    segs.forEach((s, i) => {
+      const path = segs.slice(0, i + 1).join(SEP);
+      h += `<span class="sep">›</span>` + (i === segs.length - 1 ? `<b>${esc(s)}</b>` : `<button data-act="${act}" data-path="${esc(path)}">${esc(s)}</button>`);
+    });
+    return `<div class="crumbs">${h}</div>`;
+  }
+  function recents() { try { return JSON.parse(localStorage.getItem('wl_recent') || '[]'); } catch (e) { return recents._m || []; } }
+  function addRecent(p) {
+    if (!p) return;
+    const list = [p, ...recents().filter(x => x !== p)].slice(0, 5);
+    recents._m = list;
+    try { localStorage.setItem('wl_recent', JSON.stringify(list)); } catch (e) {}
+  }
+  function newFolder(parent, inputId) {
+    const raw = ($(inputId).value || '').trim();
+    if (!raw) { toast('Type a folder name first', true); return null; }
+    if (raw.indexOf('>') >= 0) { toast('Folder names can’t contain “>”', true); return null; }
+    const path = parent ? parent + SEP + raw : raw;
+    if (!allCats().includes(path)) { state.categories.push(path); enqueue('addCategory', path); }
+    return path;
+  }
+
+  /* ---------- main list ---------- */
+  function render() {
+    const active = state.items.filter(i => i.status === 'Wishlist');
+    const sum = active.filter(i => i.price != null && (i.currency || 'INR') === 'INR').reduce((a, i) => a + i.price, 0);
+    const missing = active.filter(i => i.price == null).length;
+    const countTxt = `${active.length} item${active.length === 1 ? '' : 's'}${missing ? ` · ${missing} without price` : ''}`;
+    $('total').innerHTML = active.length ? `<b>${money(sum, 'INR')}</b><span>${countTxt}</span>` : '';
+    $('bsum').innerHTML = `<span>${active.length ? 'Total · ' + countTxt : 'Nothing saved yet'}</span><b>${money(sum, 'INR')}</b>`;
+    document.body.classList.toggle('listmode', state.layout === 'list');
+
+    if (state.path && !allCats().includes(state.path)) state.path = '';
+    const inStatus = state.items.filter(i => i.status === state.status);
+
+    $('crumbs').innerHTML = state.path ? crumbsHtml(state.path, 'go', 'All') : '';
+    let chips = '';
+    if (!state.path) {
+      chips += `<button class="chip" data-go="" aria-pressed="${!state.uncat}">All<span class="n">${inStatus.length}</span></button>`;
+      const unc = inStatus.filter(i => !i.category).length;
+      if (unc || state.uncat) chips += `<button class="chip" data-uncat="1" aria-pressed="${state.uncat}">Uncategorized<span class="n">${unc}</span></button>`;
+    } else {
+      chips += `<button class="chip" aria-pressed="true" data-go="${esc(state.path)}">All in ${esc(nameOf(state.path))}<span class="n">${countIn(state.path, inStatus)}</span></button>`;
+    }
+    childrenOf(state.path).forEach(c => {
+      chips += `<button class="chip" data-go="${esc(c)}" aria-pressed="false">${esc(nameOf(c))}<span class="n">${countIn(c, inStatus)}</span></button>`;
+    });
+    chips += `<button class="chip manage" data-manage="1">Manage categories</button>`;
+    $('filters').innerHTML = chips;
+
+    document.querySelectorAll('#statusSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === state.status));
+
+    const list = inStatus.filter(i => state.uncat ? !i.category : within(i.category || '', state.path));
+    const by = {
+      new: (a, b) => b.added.localeCompare(a.added),
+      old: (a, b) => a.added.localeCompare(b.added),
+      low: (a, b) => (a.price ?? Infinity) - (b.price ?? Infinity),
+      high: (a, b) => (b.price ?? -1) - (a.price ?? -1),
+      drop: (a, b) => (isDrop(b) - isDrop(a)) || b.added.localeCompare(a.added)
+    };
+    list.sort(by[state.sort]);
+    if (state.layout === 'list') {
+      $('grid').innerHTML = '';
+      $('listBox').innerHTML = list.length ? `<div class="list">${sectionsFor(list).map(sectionHtml).join('')}</div>` : '';
+    } else {
+      $('listBox').innerHTML = '';
+      $('grid').innerHTML = list.map(cardHtml).join('');
+    }
+    $('emptyBox').innerHTML = list.length ? '' : emptyHtml();
+    writeCache();
+  }
+
+  function cardHtml(it) {
+    const drop = isDrop(it);
+    const tag = `<div class="hang"><div class="str"></div>${it.price == null ? `<div class="tg none">Add price</div>` : `<div class="tg">${money(it.price, it.currency)}</div>`}${drop ? `<div class="wasc">was ${money(it.prevPrice, it.currency)}</div>` : ''}</div>`;
+    const pic = it.image ? `<img src="${esc(it.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+    return `<button class="card${it.status !== 'Wishlist' ? ' dim' : ''}" data-id="${esc(it.id)}">
+      <div class="pic">${pic}${tag}</div>
+      <div class="body">
+        <div class="name">${esc(it.name)}</div>
+        <div class="meta"><span>${esc(it.site)}</span><span class="cat">${esc(it.category ? nameOf(it.category) : '')}</span></div>
+      </div>
+    </button>`;
+  }
+
+  /* List view: products grouped by the folders inside the one you're viewing */
+  function sectionsFor(list) {
+    if (state.uncat) return [{ title: 'Not sorted yet', path: null, items: list }];
+    const P = state.path, secs = [];
+    childrenOf(P).forEach(c => {
+      const its = list.filter(i => i.category && within(i.category, c));
+      if (its.length) secs.push({ title: nameOf(c), path: c, items: its });
+    });
+    const direct = list.filter(i => P ? i.category === P : !i.category);
+    if (direct.length) secs.push({ title: P ? 'Directly in ' + nameOf(P) : 'Not sorted yet', path: null, items: direct });
+    return secs;
+  }
+  function sectionHtml(sec) {
+    const priced = sec.items.filter(i => i.price != null && (i.currency || 'INR') === 'INR');
+    const sum = priced.reduce((a, i) => a + i.price, 0);
+    const miss = sec.items.filter(i => i.price == null).length;
+    const n = sec.items.length;
+    const sub = priced.length ? money(sum, 'INR') + (miss ? ` · ${miss} without price` : '') : `${n} item${n === 1 ? '' : 's'}`;
+    const title = sec.path ? `<button class="sec-title" data-go="${esc(sec.path)}">${esc(sec.title)} ›</button>` : `<div class="sec-title">${esc(sec.title)}</div>`;
+    return `<div class="sec"><div class="sec-h">${title}<div class="sec-sub">${sub}</div></div>${sec.items.map(rowHtml).join('')}</div>`;
+  }
+  function rowHtml(it) {
+    const pic = it.image ? `<img src="${esc(it.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+    const pr = it.price == null ? `<span class="np">Add price</span>`
+      : `<b>${money(it.price, it.currency)}</b>${isDrop(it) ? `<span class="w">was ${money(it.prevPrice, it.currency)}</span>` : ''}`;
+    return `<button class="lrow${it.status !== 'Wishlist' ? ' dim' : ''}" data-id="${esc(it.id)}">
+      <div class="th">${pic}</div>
+      <div class="tx"><div class="nm">${esc(it.name)}</div><div class="st">${esc(it.site)}</div></div>
+      <div class="pr">${pr}</div>
+    </button>`;
+  }
+
+  function emptyHtml() {
+    if (!state.loaded) return `<div class="empty">Loading your wishlist…</div>`;
+    if (!state.items.length) return `<div class="empty"><strong>Nothing saved yet</strong>Copy a product link from Instagram or your browser and paste it above.</div>`;
+    if (state.status !== 'Wishlist') return `<div class="empty"><strong>Nothing here</strong>Items you mark as “${esc(state.status)}” show up here.</div>`;
+    return `<div class="empty"><strong>Nothing in this folder yet</strong>Tap a product and choose a category to put it here.</div>`;
+  }
+
+  /* ---------- bottom sheet ---------- */
+  function openShell() { $('scrim').classList.add('open'); requestAnimationFrame(() => $('sheet').classList.add('open')); }
+  function closeSheet() {
+    state.openId = null; state.view = 'detail'; state.shareFlow = false;
+    $('sheet').classList.remove('open'); $('scrim').classList.remove('open');
+  }
+  function openSheet(id) { state.openId = id; state.view = 'detail'; renderSheet(); openShell(); }
+  function openManage() { state.openId = null; state.view = 'manage'; state.managePath = state.path || ''; state.manageSel = null; renderSheet(); openShell(); }
+
+  function renderSheet() {
+    const v = { detail: detailHtml, picker: pickerHtml, manage: manageHtml, move: moveHtml, settings: settingsHtml, share: shareHtml }[state.view];
+    const html = v();
+    if (html == null) { closeSheet(); return; }
+    $('sheet').innerHTML = `<div class="grab"></div>` + html;
+    $('sheet').scrollTop = 0;
+  }
+
+  function shareHtml() {
+    const sh = state.share || {};
+    if (sh.status === 'loading') return `<div class="share-wait"><div class="spin" aria-hidden="true"></div><strong>Saving to your wishlist…</strong><div class="small" style="margin:0">Reading ${esc(sh.host || 'the product page')}</div></div>`;
+    if (sh.status === 'err') return `<div class="shead"><strong>Couldn’t save it</strong></div>
+      <p class="small" style="margin:0 0 16px">${esc(sh.msg)}</p>
+      <button class="btn primary fullbtn" data-act="shareretry">Try again</button>
+      <button class="btn ghost fullbtn" data-act="sharedone">Done</button>`;
+    const it = cur();
+    if (!it) return null;
+    return `<div class="shead"><strong>${sh.status === 'dup' ? 'Already on your list' : 'Saved to Wishlist'}</strong></div>
+      <div class="top">
+        ${it.image ? `<img src="${esc(it.image)}" alt="" referrerpolicy="no-referrer" style="background:#fff">` : `<div class="ph"></div>`}
+        <div style="flex:1;min-width:0">
+          <div class="site">${esc(it.site)}</div>
+          <div class="nm-lg">${esc(it.name)}</div>
+          ${it.price == null ? `<div class="pr-lg none">Price not found; add it later</div>` : `<div class="pr-lg">${money(it.price, it.currency)}</div>`}
+        </div>
+      </div>
+      <div class="field"><span>Category</span>
+        <button class="catbtn" data-act="pick">${it.category ? `<span>${pretty(it.category)}</span>` : `<span class="empty-cat">Choose category (optional)</span>`}<span>›</span></button>
+      </div>
+      <button class="btn primary fullbtn" data-act="sharedone" style="margin-top:18px">Done</button>
+      <button class="btn ghost fullbtn" data-act="sharestay">Open in Wishlist</button>`;
+  }
+
+  function openSettings() { state.openId = null; state.view = 'settings'; renderSheet(); openShell(); }
+  function settingsHtml() {
+    const g = state.layout !== 'list';
+    return `
+      <div class="shead"><strong>Settings</strong><button class="btn ghost" data-act="close">Done</button></div>
+      <div class="sgroup">
+        <p class="label">Layout</p>
+        <div class="opts">
+          <button class="opt" data-act="layout" data-layout="grid" aria-pressed="${g}"><div class="pv g"><i></i><i></i></div><strong>Grid</strong><span>Big photos with price tags</span></button>
+          <button class="opt" data-act="layout" data-layout="list" aria-pressed="${!g}"><div class="pv l"><i></i><i></i><i></i></div><strong>List</strong><span>Compact rows by folder, total at the bottom</span></button>
+        </div>
+      </div>
+      <div class="sgroup">
+        <div class="srow">
+          <div><strong>Check prices every morning</strong><p>Items that get cheaper show the old price next to the new one.</p></div>
+          <button class="switch" data-act="pricecheck" role="switch" aria-checked="${state.priceCheck}" aria-label="Check prices every morning"></button>
+        </div>
+        <button class="srow link" data-act="openmanage"><span>Manage categories</span><span>›</span></button>
+      </div>
+      ${IS_APP ? `<div class="sgroup">
+        <button class="srow link" data-act="checkupdate"><span>Check for updates<small>Version ${esc(APP_VERSION)}</small></span><span>›</span></button>
+        <button class="srow link" data-act="connection"><span>Connection<small>App link and secret key</small></span><span>›</span></button>
+      </div>` : ''}`;
+  }
+
+  function detailHtml() {
+    const it = cur();
+    if (!it) return null;
+    return `
+      <div class="top">
+        ${it.image ? `<img src="${esc(it.image)}" alt="" referrerpolicy="no-referrer" style="background:#fff">` : `<div class="ph"></div>`}
+        <div style="flex:1;min-width:0">
+          <div class="site">${esc(it.site)}</div>
+          <label class="field" style="margin-top:0"><span>Name</span><input data-field="name" value="${esc(it.name)}"></label>
+        </div>
+      </div>
+      <div class="row2">
+        <label class="field"><span>Price${it.currency && it.currency !== 'INR' ? ' (' + esc(it.currency) + ')' : ' (₹)'}</span>
+          <input data-field="price" inputmode="decimal" value="${it.price == null ? '' : it.price}" placeholder="Not found"></label>
+        <div class="field"><span>&nbsp;</span><button class="btn ghost" data-act="refresh" style="padding-left:0">Check price again</button></div>
+      </div>
+      ${isDrop(it) ? `<div class="small" style="color:var(--drop)">Dropped from ${money(it.prevPrice, it.currency)}</div>` : ''}
+      <div class="field"><span>Category</span>
+        <button class="catbtn" data-act="pick">${it.category ? `<span>${pretty(it.category)}</span>` : `<span class="empty-cat">Choose category</span>`}<span>›</span></button>
+      </div>
+      <div class="field"><span>Status</span>
+        <div class="seg">${['Wishlist', 'Bought', 'Not interested'].map(s => `<button data-act="status" data-status="${s}" aria-pressed="${s === it.status}">${s}</button>`).join('')}</div>
+      </div>
+      <label class="field"><span>Note</span><textarea data-field="note" placeholder="Size, colour, where you saw it…">${esc(it.note)}</textarea></label>
+      <a class="openlink" href="${esc(it.url)}" target="_blank" rel="noopener">Open product page</a>
+      <div class="foot">
+        <button class="btn danger" data-act="del">Delete</button>
+        <button class="btn ghost" data-act="close">Done</button>
+      </div>
+      <div class="small">Added ${new Date(it.added).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}${it.via === 'Link only' ? ' · The site didn’t share details, so fill them in yourself.' : ''}</div>`;
+  }
+
+  function pickerHtml() {
+    if (!cur()) return null;
+    return `
+      <div class="shead"><button class="btn ghost" data-act="back">‹ Back</button><strong>Choose category</strong></div>
+      <input class="search" id="catSearch" placeholder="Search all categories" value="${esc(state.search)}" autocomplete="off">
+      <div id="pickBody">${pickBodyHtml()}</div>`;
+  }
+
+  function pickBodyHtml() {
+    const it = cur();
+    const q = state.search.trim().toLowerCase();
+    if (q) {
+      const hits = allCats().filter(c => c.toLowerCase().includes(q)).slice(0, 40);
+      const rows = hits.map(c => {
+        const par = parentOf(c);
+        return `<div class="frow"><button class="fname" data-act="choose" data-path="${esc(c)}"><span>${par ? `<span class="pp">${pretty(par)} › </span>` : ''}${esc(nameOf(c))}</span></button></div>`;
+      }).join('');
+      const make = norm(state.search);
+      const create = make && !allCats().includes(make)
+        ? `<button class="btn ${hits.length ? 'ghost' : 'primary'} fullbtn" data-act="create" data-path="${esc(make)}">Create new folder “${pretty(make)}”</button>` : '';
+      return (rows ? `<div class="flist">${rows}</div>` : `<div class="none">No category matches “${esc(state.search)}”.</div>`) + create;
+    }
+    const rec = recents().filter(r => allCats().includes(r) && r !== it.category);
+    const kids = childrenOf(state.pickPath);
+    const here = state.pickPath;
+    return `
+      ${rec.length ? `<p class="label">Recently used</p><div class="recents">${rec.map(r => `<button class="chip" data-act="choose" data-path="${esc(r)}">${pretty(r)}</button>`).join('')}</div>` : ''}
+      ${crumbsHtml(here, 'pnav', 'All categories')}
+      <div class="flist">
+        ${kids.length ? kids.map(c => `<div class="frow"><button class="fname" data-act="pnav" data-path="${esc(c)}"><span>${esc(nameOf(c))}</span><span class="arrow">›</span></button></div>`).join('')
+                      : `<div class="none">No folders inside ${here ? '“' + esc(nameOf(here)) + '”' : 'yet'}.</div>`}
+      </div>
+      <div class="newcat" style="margin-bottom:14px"><input id="pickNew" placeholder="${here ? 'New folder inside ' + esc(nameOf(here)) : 'New folder, e.g. Clothes'}" data-enter="pickNewBtn"><button class="btn primary" id="pickNewBtn" data-act="newfolder">Add</button></div>
+      ${here ? `<button class="btn primary fullbtn" data-act="choose" data-path="${esc(here)}">Put it in ${esc(nameOf(here))}</button>`
+             : (it.category ? `<button class="btn ghost fullbtn" data-act="choose" data-path="">Remove category</button>` : '')}`;
+  }
+
+  function manageHtml() {
+    const here = state.managePath;
+    const kids = childrenOf(here);
+    const rows = kids.map(c => {
+      const open = state.manageSel === c;
+      return `<div class="frow">
+        <div class="line">
+          <button class="fname" data-act="mnav" data-path="${esc(c)}"><span>${esc(nameOf(c))}</span><span class="cnt">${countIn(c, state.items)} · ›</span></button>
+          <button class="edit" data-act="medit" data-path="${esc(c)}">${open ? 'Close' : 'Edit'}</button>
+        </div>
+        ${open ? `<div class="fpanel">
+          <div class="newcat" style="margin-top:0"><input id="renameInput" value="${esc(nameOf(c))}" data-enter="renameBtn"><button class="btn primary" id="renameBtn" data-act="mrename" data-path="${esc(c)}">Rename</button></div>
+          <div class="acts">
+            <button class="btn" data-act="mmove" data-path="${esc(c)}">Move to…</button>
+            <button class="btn danger" data-act="mdelete" data-path="${esc(c)}" style="border:1px solid var(--line);background:#fff">Delete</button>
+          </div></div>` : ''}
+      </div>`;
+    }).join('');
+    return `
+      <div class="shead"><strong>Manage categories</strong><button class="btn ghost" data-act="close">Done</button></div>
+      ${crumbsHtml(here, 'mnav', 'All categories')}
+      <div class="flist">${rows || `<div class="none">No folders inside ${here ? '“' + esc(nameOf(here)) + '”' : 'yet'}.</div>`}</div>
+      <div class="newcat"><input id="manageNew" placeholder="${here ? 'New folder inside ' + esc(nameOf(here)) : 'New folder, e.g. Clothes'}" data-enter="manageNewBtn"><button class="btn primary" id="manageNewBtn" data-act="mnew">Add</button></div>
+      <div class="small">Tap a folder to open it. Deleting a folder moves its products and subfolders up one level, so nothing is lost.</div>`;
+  }
+
+  function moveHtml() {
+    const src = state.moveSrc, here = state.movePath;
+    const kids = childrenOf(here).filter(c => !within(c, src));
+    const same = here === parentOf(src);
+    return `
+      <div class="shead"><button class="btn ghost" data-act="vback">‹ Back</button><strong>Move “${esc(nameOf(src))}”</strong></div>
+      ${crumbsHtml(here, 'vnav', 'Top level')}
+      <div class="flist">${kids.length ? kids.map(c => `<div class="frow"><button class="fname" data-act="vnav" data-path="${esc(c)}"><span>${esc(nameOf(c))}</span><span class="arrow">›</span></button></div>`).join('')
+                                        : `<div class="none">No other folders here.</div>`}</div>
+      <button class="btn primary fullbtn" data-act="vhere" ${same ? 'disabled' : ''}>${same ? 'It’s already here' : 'Move here' + (here ? ' (into ' + esc(nameOf(here)) + ')' : ' (top level)')}</button>`;
+  }
+
+  /* ---------- saving ---------- */
+  function save(id, fields, redrawSheet) {
+    const it = state.items.find(i => i.id === id);
+    if (!it) return;
+    const local = Object.assign({}, fields);
+    if ('price' in local) {
+      const n = parseFloat(String(local.price).replace(/[^\d.]/g, ''));
+      local.price = isNaN(n) || n <= 0 ? null : n;
+      local.prevPrice = null;
+    }
+    if ('category' in local) local.category = norm(local.category);
+    Object.assign(it, local);        // update the screen immediately
+    render();
+    if (redrawSheet) renderSheet();
+    enqueue('updateItem', id, fields); // save in the background
+  }
+
+  async function bigChange(btn, fn, args, done) {
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await queue;
+      const r = await call(fn, ...args);
+      state.items = r.items; state.categories = r.categories; state.priceCheck = r.priceCheck;
+      done && done();
+      if (state.managePath && !allCats().includes(state.managePath)) state.managePath = '';
+      render(); renderSheet();
+    } catch (err) { toast(err.message, true); renderSheet(); }
+  }
+
+  /* ---------- sheet events ---------- */
+  $('sheet').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]');
+    if (!b || b.disabled) return;
+    const p = b.dataset.path;
+    switch (b.dataset.act) {
+      case 'close': closeSheet(); break;
+      case 'sharedone': closeSheet(); if (IS_APP) native('App', 'minimizeApp').catch(() => {}); break;
+      case 'sharestay': state.shareFlow = false; state.view = 'detail'; renderSheet(); break;
+      case 'shareretry': handleShared((state.share || {}).text || ''); break;
+      case 'checkupdate': checkUpdate(true); break;
+      case 'connection': closeSheet(); showSetup(true); break;
+      case 'layout': setLayout(b.dataset.layout); renderSheet(); break;
+      case 'pricecheck': togglePriceCheck(); break;
+      case 'openmanage': state.view = 'manage'; state.managePath = state.path || ''; state.manageSel = null; renderSheet(); break;
+      case 'pick': { const it = cur(); state.view = 'picker'; state.search = ''; state.pickPath = it && it.category ? it.category : ''; renderSheet(); break; }
+      case 'back': state.view = state.shareFlow ? 'share' : 'detail'; renderSheet(); break;
+      case 'pnav': state.pickPath = p; renderSheet(); break;
+      case 'choose': save(state.openId, { category: p }); addRecent(p); state.view = state.shareFlow ? 'share' : 'detail'; renderSheet(); break;
+      case 'create': { if (!allCats().includes(p)) { state.categories.push(p); enqueue('addCategory', p); } save(state.openId, { category: p }); addRecent(p); state.view = state.shareFlow ? 'share' : 'detail'; renderSheet(); break; }
+      case 'newfolder': { const np = newFolder(state.pickPath, 'pickNew'); if (np) { state.pickPath = np; renderSheet(); } break; }
+      case 'status': save(state.openId, { status: b.dataset.status }, true); break;
+      case 'refresh': refresh(b); break;
+      case 'del': del(); break;
+      case 'mnav': state.managePath = p; state.manageSel = null; renderSheet(); break;
+      case 'medit': state.manageSel = state.manageSel === p ? null : p; renderSheet(); break;
+      case 'mnew': { if (newFolder(state.managePath, 'manageNew')) { render(); renderSheet(); } break; }
+      case 'mrename': {
+        const nn = $('renameInput').value.trim();
+        if (!nn) { toast('Type a folder name first', true); break; }
+        if (nn.indexOf('>') >= 0) { toast('Folder names can’t contain “>”', true); break; }
+        if (nn === nameOf(p)) { state.manageSel = null; renderSheet(); break; }
+        bigChange(b, 'renameCategory', [p, nn], () => { state.manageSel = null; toast('Renamed to ' + nn); });
+        break;
+      }
+      case 'mmove': state.moveSrc = p; state.movePath = ''; state.view = 'move'; renderSheet(); break;
+      case 'mdelete': {
+        const par = parentOf(p);
+        const msg = par ? `Delete “${nameOf(p)}”? Its products and subfolders move into “${nameOf(par)}”.`
+                        : `Delete “${nameOf(p)}”? Its products become Uncategorized and its subfolders move to the top level.`;
+        if (confirm(msg)) bigChange(b, 'deleteCategory', [p], () => { state.manageSel = null; toast('Folder deleted'); });
+        break;
+      }
+      case 'vnav': state.movePath = p; renderSheet(); break;
+      case 'vback': state.view = 'manage'; renderSheet(); break;
+      case 'vhere': {
+        const dest = state.movePath;
+        bigChange(b, 'moveCategory', [state.moveSrc, dest], () => { state.view = 'manage'; state.managePath = dest; state.manageSel = null; toast('Moved'); });
+        break;
+      }
+    }
+  });
+  $('sheet').addEventListener('change', e => {
+    const f = e.target.dataset.field;
+    if (f && state.openId) save(state.openId, { [f]: e.target.value.trim() });
+  });
+  $('sheet').addEventListener('input', e => {
+    if (e.target.id === 'catSearch') { state.search = e.target.value; $('pickBody').innerHTML = pickBodyHtml(); }
+  });
+  $('sheet').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.dataset.enter) { e.preventDefault(); const b = $(e.target.dataset.enter); if (b) b.click(); }
+  });
+
+  async function refresh(b) {
+    const id = state.openId;
+    b.disabled = true; b.textContent = 'Checking…';
+    try {
+      await queue;
+      const upd = await call('refreshItem', id);
+      const i = state.items.findIndex(x => x.id === id);
+      if (i >= 0) state.items[i] = upd;
+      render(); if (state.openId === id && state.view === 'detail') renderSheet();
+      toast(upd.price != null ? 'Price updated' : 'The site didn’t share a price');
+    } catch (err) { toast(err.message, true); b.disabled = false; b.textContent = 'Check price again'; }
+  }
+
+  function del() {
+    const id = state.openId;
+    if (!confirm('Delete this item from your wishlist?')) return;
+    state.items = state.items.filter(i => i.id !== id);
+    closeSheet(); render(); toast('Deleted');
+    enqueue('deleteItem', id);
+  }
+
+  /* ---------- adding links ---------- */
+  async function addLinks(text, form) {
+    const links = (text.match(/https?:\/\/[^\s<>"']+/gi) || []);
+    const list = links.length ? links : (text.trim() ? [text.trim()] : []);
+    if (!list.length) { toast('Paste a product link first', true); return; }
+    const btn = form.querySelector('[type=submit]'), input = form.querySelector('input');
+    btn.disabled = true;
+    let added = 0, dup = 0, failed = 0;
+    for (let k = 0; k < list.length; k++) {
+      setProgress(list.length > 1 ? `Reading link ${k + 1} of ${list.length}…` : 'Reading the product page…');
+      try {
+        const res = await call('addItem', list[k]);
+        if (res.duplicate) { dup++; if (list.length === 1) toast('Already on your list: ' + res.item.name); }
+        else {
+          added++; state.items.unshift(res.item); render();
+          if (list.length === 1) toast(res.item.price == null ? 'Saved. Price not found; tap it to add one.' : 'Added ' + res.item.name);
+        }
+      } catch (err) { failed++; if (list.length === 1) toast(err.message, true); }
+    }
+    if (list.length > 1) toast(`Added ${added}${dup ? `, ${dup} already saved` : ''}${failed ? `, ${failed} failed` : ''}`, failed > 0 && !added);
+    setProgress('');
+    btn.disabled = false;
+    input.value = '';
+  }
+  function setProgress(t) { $('progress').textContent = t; $('progress2').textContent = t; }
+
+  /* ---------- page events ---------- */
+  ['addForm', 'addForm2'].forEach(id => $(id).addEventListener('submit', e => { e.preventDefault(); addLinks(e.target.querySelector('input').value, e.target); }));
+  document.querySelectorAll('[data-paste]').forEach(b => b.addEventListener('click', async () => {
+    const input = $(b.dataset.paste);
+    try {
+      const t = IS_APP ? ((await native('Clipboard', 'read')) || {}).value : await navigator.clipboard.readText();
+      if (t) { input.value = t; addLinks(t, input.form); return; }
+    } catch (e) {}
+    input.focus(); toast('Long-press the box and tap Paste');
+  }));
+  $('gearBtn').addEventListener('click', openSettings);
+  $('listBox').addEventListener('click', e => {
+    const g = e.target.closest('[data-go]'); if (g) { state.uncat = false; state.path = g.dataset.go; render(); window.scrollTo(0, 0); return; }
+    const r = e.target.closest('.lrow'); if (r) openSheet(r.dataset.id);
+  });
+  $('filters').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.manage) { openManage(); return; }
+    if (b.dataset.uncat) { state.uncat = true; state.path = ''; render(); return; }
+    if ('go' in b.dataset) { state.uncat = false; state.path = b.dataset.go; render(); }
+  });
+  $('crumbs').addEventListener('click', e => { const b = e.target.closest('[data-act="go"]'); if (b) { state.uncat = false; state.path = b.dataset.path; render(); } });
+  $('statusSeg').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (b) { state.status = b.dataset.s; render(); } });
+  $('sort').addEventListener('change', e => { state.sort = e.target.value; render(); });
+  $('grid').addEventListener('click', e => { const c = e.target.closest('.card'); if (c) openSheet(c.dataset.id); });
+  $('scrim').addEventListener('click', closeSheet);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('sheet').classList.contains('open')) closeSheet(); });
+  async function togglePriceCheck() {
+    const want = !state.priceCheck;
+    state.priceCheck = want; if (state.view === 'settings') renderSheet();
+    try { state.priceCheck = await call('setPriceCheck', want); toast(state.priceCheck ? 'Prices will be checked every morning' : 'Daily price check turned off'); }
+    catch (err) { state.priceCheck = !want; toast(err.message, true); }
+    if (state.view === 'settings' && $('sheet').classList.contains('open')) renderSheet();
+  }
+
+  function applyData(r) { state.items = r.items; state.priceCheck = r.priceCheck; state.categories = r.categories || []; state.loaded = true; render(); }
+  async function load() {
+    try { applyData(await call('getItems')); }
+    catch (err) { toast((IS_APP && state.loaded ? 'Showing your saved list. ' : 'Couldn’t load your list: ') + err.message, true); }
+  }
+
+  /* ---------- phone app: connect, share, back button, updates ---------- */
+  let pendingShare = null;
+  function showSetup(canCancel) {
+    const c = getConn();
+    $('setupUrl').value = c ? c.url : '';
+    $('setupKey').value = c ? c.key : '';
+    $('setupErr').textContent = '';
+    $('setupCancel').hidden = !canCancel;
+    $('setup').hidden = false;
+  }
+  $('setupCancel').addEventListener('click', () => { $('setup').hidden = true; });
+  $('setupBtn').addEventListener('click', async () => {
+    const url = $('setupUrl').value.trim(), key = $('setupKey').value.trim();
+    if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) { $('setupErr').textContent = 'The app link should start with https://script.google.com/ and end with /exec.'; return; }
+    if (key.length < 20) { $('setupErr').textContent = 'That secret key looks too short. Copy the whole key.'; return; }
+    const b = $('setupBtn');
+    b.disabled = true; b.textContent = 'Connecting…'; $('setupErr').textContent = '';
+    try {
+      const r = await apiCall({ url: url, key: key }, 'getItems', []);
+      setConn({ url: url, key: key });
+      $('setup').hidden = true;
+      applyData(r);
+      toast('Connected');
+      if (pendingShare) { const t = pendingShare; pendingShare = null; handleShared(t); }
+    } catch (err) { $('setupErr').textContent = err.message; }
+    b.disabled = false; b.textContent = 'Connect';
+  });
+
+  async function handleShared(text) {
+    if (!text) return;
+    if (!getConn()) { pendingShare = text; showSetup(false); return; }
+    const url = (text.match(/https?:\/\/[^\s<>"']+/i) || [])[0] || '';
+    state.shareFlow = true;
+    state.share = { status: 'loading', text: text, host: url.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0] };
+    state.openId = null; state.view = 'share';
+    renderSheet(); openShell();
+    try {
+      const res = await call('addItem', text);
+      if (!state.items.some(i => i.id === res.item.id)) { state.items.unshift(res.item); render(); }
+      state.openId = res.item.id;
+      state.share = { status: res.duplicate ? 'dup' : 'ok', text: text };
+    } catch (err) {
+      state.share = { status: 'err', msg: err.message, text: text };
+    }
+    if (state.view === 'share') renderSheet();
+  }
+
+  function initShare() {
+    try {
+      window.Capacitor.addListener('ShareInbox', 'shared', d => { if (d && d.text) handleShared(d.text); });
+      native('ShareInbox', 'take').then(d => { if (d && d.text) handleShared(d.text); }).catch(() => {});
+    } catch (e) {}
+  }
+
+  function initBack() {
+    try {
+      window.Capacitor.addListener('App', 'backButton', () => {
+        if (!$('setup').hidden) { if (!$('setupCancel').hidden) $('setup').hidden = true; else native('App', 'exitApp').catch(() => {}); return; }
+        if ($('sheet').classList.contains('open')) {
+          if (state.view === 'picker') { state.view = state.shareFlow ? 'share' : 'detail'; renderSheet(); }
+          else if (state.view === 'move') { state.view = 'manage'; renderSheet(); }
+          else if (state.view === 'share') { closeSheet(); native('App', 'minimizeApp').catch(() => {}); }
+          else closeSheet();
+          return;
+        }
+        if (state.uncat) { state.uncat = false; render(); return; }
+        if (state.path) { state.path = parentOf(state.path); render(); return; }
+        native('App', 'exitApp').catch(() => {});
+      });
+    } catch (e) {}
+  }
+
+  function newer(a, b) {
+    const x = a.split('.').map(Number), y = b.split('.').map(Number);
+    for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d > 0; }
+    return false;
+  }
+  async function checkUpdate(manual) {
+    if (!IS_APP || !APP_REPO || APP_REPO.indexOf('__') === 0) { if (manual) toast('Updates are checked in the phone app'); return; }
+    try {
+      const r = await fetch('https://api.github.com/repos/' + APP_REPO + '/releases/latest');
+      if (!r.ok) throw new Error('status ' + r.status);
+      const d = await r.json();
+      const latest = String(d.tag_name || '').replace(/^v/, '');
+      if (latest && newer(latest, APP_VERSION)) {
+        const apk = (d.assets || []).find(a => /\.apk$/i.test(a.name));
+        $('updateBar').innerHTML = `<span>Version ${esc(latest)} is available</span><a class="btn primary" href="${esc(apk ? apk.browser_download_url : d.html_url)}" target="_blank" rel="noopener">Download</a>`;
+        $('updateBar').hidden = false;
+        if (manual) { closeSheet(); toast('Update available: version ' + latest); }
+      } else if (manual) toast('You have the latest version (' + APP_VERSION + ')');
+    } catch (e) { if (manual) toast('Couldn’t check for updates right now', true); }
+  }
+
+  function startApp() {
+    const cached = readCache();
+    if (cached && cached.items) applyData(cached); else render();
+    if (getConn()) load(); else showSetup(false);
+    initShare();
+    initBack();
+    setTimeout(() => checkUpdate(false), 2000);
+  }
+  if (IS_APP) startApp();
+  else if (INITIAL && INITIAL.items) applyData(INITIAL);   // list arrived with the page: show it straight away
+  else { render(); load(); }
+</script>
+</body>
+</html>
