@@ -43,12 +43,12 @@ jobs:
         run: npm ci
 
       - name: Prepare the app screen
-        run: node scripts/prepare-web.js
+        run: node prepare-web.js
 
       - name: Create the Android project
         run: |
           npx cap add android
-          node scripts/patch-android.js
+          node patch-android.js
           npx cap sync android
 
       - name: Add the signing key
